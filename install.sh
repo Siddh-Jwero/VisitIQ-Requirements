@@ -29,7 +29,9 @@ command_exists() { command -v "$1" &>/dev/null; }
 
 NONINTERACTIVE=false
 USE_VENV=false
-REQUIREMENTS_FILE="requirements.txt"
+# Default to the remote VisitIQ-Requirements raw requirements file so
+# users piping this installer will automatically get the correct deps.
+REQUIREMENTS_FILE="https://raw.githubusercontent.com/Siddh-Jwero/VisitIQ-Requirements/main/requirements.txt"
 
 usage() {
     cat <<EOF
@@ -351,7 +353,9 @@ main() {
     if [[ "$USE_VENV" == true ]]; then
         info "Virtualenv created at: $(pwd)/.venv"
     fi
-    if [[ -f "$REQUIREMENTS_FILE" ]]; then
+    if [[ -n "${REQ_LOCAL:-}" ]]; then
+        info "Installed requirements from: $REQUIREMENTS_FILE (downloaded to: $REQ_LOCAL)"
+    elif [[ -f "$REQUIREMENTS_FILE" ]]; then
         info "Installed requirements from: $REQUIREMENTS_FILE"
     fi
 }
