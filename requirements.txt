@@ -13,7 +13,6 @@ tqdm
 # AdaFace via InsightFace (GPU-accelerated face embeddings)
 insightface>=0.7.3
 onnxruntime
-git
 # CLIP for body/context embeddings
 git+https://github.com/openai/CLIP.git
 torch>=2.0.0
