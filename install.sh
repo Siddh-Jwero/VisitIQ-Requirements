@@ -256,8 +256,35 @@ ensure_pip() {
     info "Using pip command: $PIP_CMD"
 }
 
+fetch_requirements() {
+    # If REQUIREMENTS_FILE is an HTTP(S) URL, download it to a temp file
+    REQ_LOCAL=""
+    if [[ "$REQUIREMENTS_FILE" =~ ^https?:// ]]; then
+        if ! command_exists curl && ! command_exists wget; then
+            error "curl or wget is required to download remote requirements file"
+        fi
+
+        tmp_req=$(mktemp)
+        # ensure temp file cleaned up on exit
+        trap '[[ -n "${tmp_req:-}" ]] && rm -f "$tmp_req"' EXIT
+
+        info "Downloading requirements from: $REQUIREMENTS_FILE"
+        if command_exists curl; then
+            curl -fsSL "$REQUIREMENTS_FILE" -o "$tmp_req" || { rm -f "$tmp_req"; error "Failed to download $REQUIREMENTS_FILE"; }
+        else
+            wget -q -O "$tmp_req" "$REQUIREMENTS_FILE" || { rm -f "$tmp_req"; error "Failed to download $REQUIREMENTS_FILE"; }
+        fi
+
+        REQ_LOCAL="$tmp_req"
+    else
+        REQ_LOCAL="$REQUIREMENTS_FILE"
+    fi
+}
+
 install_dependencies() {
-    if [[ ! -f "$REQUIREMENTS_FILE" ]]; then
+    fetch_requirements
+
+    if [[ ! -f "$REQ_LOCAL" ]]; then
         warn "Requirements file not found: $REQUIREMENTS_FILE. Skipping dependency installation."
         return 0
     fi
@@ -270,20 +297,22 @@ install_dependencies() {
         # shellcheck disable=SC1091
         source .venv/bin/activate
         $PIP_CMD install --upgrade pip
-        $PIP_CMD install -r "$REQUIREMENTS_FILE"
+        $PIP_CMD install -r "$REQ_LOCAL"
         info "Dependencies installed into .venv"
     else
         info "Installing dependencies for current user (pip --user)"
         # Expand PIP_CMD if it's a compound command
         if [[ "$PIP_CMD" == "python3 -m pip" ]]; then
             python3 -m pip install --user --upgrade pip
-            python3 -m pip install --user -r "$REQUIREMENTS_FILE"
+            python3 -m pip install --user -r "$REQ_LOCAL"
         else
             $PIP_CMD install --user --upgrade pip
-            $PIP_CMD install --user -r "$REQUIREMENTS_FILE"
+            $PIP_CMD install --user -r "$REQ_LOCAL"
         fi
         info "Dependencies installed (user site-packages)"
     fi
+
+    # If we downloaded a temporary requirements file, leave trap to remove it on exit
 }
 
 main() {
