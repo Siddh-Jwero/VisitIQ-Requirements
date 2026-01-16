@@ -14,6 +14,6 @@ tqdm
 insightface>=0.7.3
 onnxruntime
 # CLIP for body/context embeddings
-git+https://github.com/openai/CLIP.git
+#git+https://github.com/openai/CLIP.git
 torch>=2.0.0
 Pillow
