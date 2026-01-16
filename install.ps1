@@ -26,12 +26,12 @@ if (-not (CmdExists python)) {
         }
     }
 
-    if (-not $installed -and CmdExists choco) {
+    if (-not $installed -and (CmdExists choco)) {
         Write-Info "Trying Chocolatey..."
         try { choco install -y python | Out-Null; $installed = $true } catch { Write-Warn "choco failed" }
     }
 
-    if (-not $installed -and CmdExists scoop) {
+    if (-not $installed -and (CmdExists scoop)) {
         Write-Info "Trying Scoop..."
         try { scoop install python | Out-Null; $installed = $true } catch { Write-Warn "scoop failed" }
     }
@@ -68,10 +68,10 @@ if ($needsGit -and -not (CmdExists git)) {
     if (CmdExists winget) {
         try { winget install --id Git.Git -e --accept-package-agreements --accept-source-agreements -h | Out-Null; $gitInstalled = $true } catch { }
     }
-    if (-not $gitInstalled -and CmdExists choco) {
+    if (-not $gitInstalled -and (CmdExists choco)) {
         try { choco install -y git | Out-Null; $gitInstalled = $true } catch { }
     }
-    if (-not $gitInstalled -and CmdExists scoop) {
+    if (-not $gitInstalled -and (CmdExists scoop)) {
         try { scoop install git | Out-Null; $gitInstalled = $true } catch { }
     }
     if (-not $gitInstalled) {
