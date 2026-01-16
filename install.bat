@@ -84,6 +84,23 @@ exit /b 1
 echo.
 echo Python ready.
 
+
+REM -------------------------------------------------
+REM Install Microsoft C++ Build Tools (required for insightface)
+REM -------------------------------------------------
+echo.
+echo Installing Microsoft C++ Build Tools...
+
+where winget >nul 2>&1
+if %ERRORLEVEL%==0 (
+    winget install --id Microsoft.VisualStudio.2022.BuildTools -e ^
+      --accept-package-agreements --accept-source-agreements
+)
+
+
+
+
+
 REM -------------------------------------------------
 REM Step 4: Upgrade pip
 REM -------------------------------------------------
