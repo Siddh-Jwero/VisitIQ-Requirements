@@ -8,19 +8,19 @@ echo ============================================
 set LOG_FILE=%TEMP%\visitiq_install.log
 set REQ_URL=https://raw.githubusercontent.com/Siddh-Jwero/VisitIQ-Requirements/main/requirements.txt
 set TMP_REQ=%TEMP%\visitiq_requirements.txt
-set PYTHON_EXE=python
+set PY_CMD=
 
 echo VisitIQ install started > "%LOG_FILE%"
 
 REM -------------------------------------------------
-REM Step 1: Check for Python 3.10 specifically
+REM Step 1: Detect Python 3.10 via launcher
 REM -------------------------------------------------
 echo.
-echo [1/5] Checking for Python...
+echo [1/5] Checking for Python 3.10...
 
-for /f "tokens=2 delims= " %%v in ('python --version 2^>^&1') do set PY_VER=%%v
-
-if "%PY_VER:~0,4%"=="3.10" (
+py -3.10 --version >nul 2>&1
+if %ERRORLEVEL%==0 (
+    set PY_CMD=py -3.10
     echo Python 3.10 detected.
     goto PY_OK
 )
@@ -28,45 +28,48 @@ if "%PY_VER:~0,4%"=="3.10" (
 echo Python 3.10 not found.
 
 REM -------------------------------------------------
-REM Step 2: Install Python 3.10 silently
+REM Step 2: Install Python 3.10 via winget
 REM -------------------------------------------------
 echo.
 echo [2/5] Installing Python 3.10...
 
 where winget >nul 2>&1
-if %ERRORLEVEL%==0 (
-    winget install --id Python.Python.3.10 -e ^
-        --accept-package-agreements --accept-source-agreements ^
-        >> "%LOG_FILE%" 2>&1
-) else (
+if %ERRORLEVEL% NEQ 0 (
     echo ERROR: winget not available. >> "%LOG_FILE%"
     echo Please install Python 3.10 manually.
     pause
     exit /b 1
 )
 
-echo Waiting for Python to initialize...
+winget install --id Python.Python.3.10 -e ^
+  --accept-package-agreements --accept-source-agreements ^
+  >> "%LOG_FILE%" 2>&1
+
+echo Waiting for Python to register...
 timeout /t 8 >nul
 
-python --version >nul 2>&1
+REM Re-check via launcher (NOT PATH)
+py -3.10 --version >nul 2>&1
 if %ERRORLEVEL% NEQ 0 (
     echo.
-    echo ERROR: Python installed but PATH not refreshed.
-    echo Close this window and re-run install.bat.
-    pause
+    echo ❌ Python installation failed.
+    echo See log: %LOG_FILE%
     exit /b 1
 )
+
+set PY_CMD=py -3.10
 
 :PY_OK
 
 REM -------------------------------------------------
-REM Step 3: Upgrade pip quietly
+REM Step 3: Upgrade pip (quiet)
 REM -------------------------------------------------
 echo.
 echo [3/5] Upgrading pip...
-%PYTHON_EXE% -m pip install --upgrade pip ^
-    --disable-pip-version-check --no-python-version-warning ^
-    >> "%LOG_FILE%" 2>&1
+
+%PY_CMD% -m pip install --upgrade pip ^
+  --disable-pip-version-check --no-python-version-warning ^
+  >> "%LOG_FILE%" 2>&1
 
 REM -------------------------------------------------
 REM Step 4: Download requirements
@@ -87,17 +90,17 @@ REM -------------------------------------------------
 echo.
 echo [5/5] Installing dependencies (this may take a few minutes)...
 
-%PYTHON_EXE% -m pip install --user ^
-    --only-binary=:all: ^
-    --disable-pip-version-check ^
-    --no-python-version-warning ^
-    -r "%TMP_REQ%" ^
-    >> "%LOG_FILE%" 2>&1
+%PY_CMD% -m pip install --user ^
+  --only-binary=:all: ^
+  --disable-pip-version-check ^
+  --no-python-version-warning ^
+  -r "%TMP_REQ%" ^
+  >> "%LOG_FILE%" 2>&1
 
 if %ERRORLEVEL% NEQ 0 (
     echo.
     echo ❌ Dependency installation failed.
-    echo See log file:
+    echo See detailed log:
     echo %LOG_FILE%
     exit /b 1
 )
