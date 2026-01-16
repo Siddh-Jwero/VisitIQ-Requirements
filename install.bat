@@ -2,89 +2,84 @@
 setlocal EnableDelayedExpansion
 
 echo ============================================
-echo   VisitIQ Windows Installer (BAT)
+echo   VisitIQ Windows Installer
 echo ============================================
 
 set REQ_URL=https://raw.githubusercontent.com/Siddh-Jwero/VisitIQ-Requirements/main/requirements.txt
 set TMP_REQ=%TEMP%\visitiq_requirements.txt
-set PYTHON_OK=0
 
 REM -------------------------------------------------
-REM Step 1: Check for Python
+REM Step 1: Check for REAL Python (not Store stub)
 REM -------------------------------------------------
 echo.
 echo [1/5] Checking for Python...
 
-where python >nul 2>&1
+python --version >nul 2>&1
 if %ERRORLEVEL%==0 (
-    python --version
-    set PYTHON_OK=1
-) else (
-    echo Python not found on PATH.
+    for /f "tokens=2 delims= " %%v in ('python --version 2^>^&1') do set PY_VER=%%v
+    echo Found Python %PY_VER%
+    goto PY_OK
 )
 
+echo Python not found or Microsoft Store stub detected.
+
 REM -------------------------------------------------
-REM Step 2: Install Python if missing
+REM Step 2: Install Python via winget (REQUIRED)
 REM -------------------------------------------------
-if %PYTHON_OK%==0 (
+echo.
+echo [2/5] Installing Python automatically...
+
+where winget >nul 2>&1
+if %ERRORLEVEL% NEQ 0 (
+    echo ERROR: winget is not available on this system.
+    echo Please update Windows or install Python manually:
+    echo https://www.python.org/downloads/windows/
+    pause
+    exit /b 1
+)
+
+winget install --id=Python.Python.3 -e --accept-package-agreements --accept-source-agreements
+
+echo Waiting for Python to be registered in PATH...
+timeout /t 8 >nul
+
+python --version >nul 2>&1
+if %ERRORLEVEL% NEQ 0 (
     echo.
-    echo [2/5] Installing Python...
-
-    REM Try winget first
-    where winget >nul 2>&1
-    if %ERRORLEVEL%==0 (
-        echo Installing Python via winget...
-        winget install --id=Python.Python.3 -e --accept-package-agreements --accept-source-agreements
-    ) else (
-        echo winget not available.
-    )
-
-    REM Refresh PATH
-    call refreshenv >nul 2>&1
-
-    where python >nul 2>&1
-    if %ERRORLEVEL%==0 (
-        set PYTHON_OK=1
-    ) else (
-        echo.
-        echo Python still not detected.
-        echo Downloading official Python installer...
-        start https://www.python.org/downloads/windows/
-        echo.
-        echo Please install Python manually and CHECK:
-        echo   [x] Add Python to PATH
-        pause
-        exit /b 1
-    )
+    echo ERROR: Python installed but PATH not updated yet.
+    echo Close this window and re-run install.bat.
+    pause
+    exit /b 1
 )
 
-REM -------------------------------------------------
-REM Step 3: Disable Microsoft Store Python alias
-REM -------------------------------------------------
-echo.
-echo [3/5] Disabling Microsoft Store Python alias (if enabled)...
-
-powershell -Command ^
- "Get-ItemProperty HKCU:\Software\Microsoft\Windows\CurrentVersion\AppExecutionAliases\python.exe -ErrorAction SilentlyContinue | Out-Null"
+:PY_OK
 
 REM -------------------------------------------------
-REM Step 4: Upgrade pip
+REM Step 3: Upgrade pip
 REM -------------------------------------------------
 echo.
-echo [4/5] Upgrading pip...
+echo [3/5] Upgrading pip...
 python -m pip install --user --upgrade pip
 
 REM -------------------------------------------------
-REM Step 5: Install requirements
+REM Step 4: Download requirements
+REM -------------------------------------------------
+echo.
+echo [4/5] Downloading requirements.txt...
+
+curl -fsSL "%REQ_URL%" -o "%TMP_REQ%"
+if %ERRORLEVEL% NEQ 0 (
+    echo ERROR: Failed to download requirements.txt
+    exit /b 1
+)
+
+REM -------------------------------------------------
+REM Step 5: Install dependencies
 REM -------------------------------------------------
 echo.
 echo [5/5] Installing VisitIQ dependencies...
 
-powershell -Command ^
- "Invoke-WebRequest -UseBasicParsing '%REQ_URL%' -OutFile '%TMP_REQ%'"
-
 python -m pip install --user -r "%TMP_REQ%"
-
 if %ERRORLEVEL% NEQ 0 (
     echo.
     echo ❌ Dependency installation failed.
@@ -93,8 +88,7 @@ if %ERRORLEVEL% NEQ 0 (
 
 echo.
 echo ============================================
-echo   VisitIQ installation complete
+echo   VisitIQ installation completed successfully
 echo ============================================
 echo.
-echo You may now run your application.
 pause
