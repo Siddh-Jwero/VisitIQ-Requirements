@@ -8,89 +8,85 @@ echo ============================================
 set LOG_FILE=%TEMP%\visitiq_install.log
 set REQ_URL=https://raw.githubusercontent.com/Siddh-Jwero/VisitIQ-Requirements/main/requirements.txt
 set TMP_REQ=%TEMP%\visitiq_requirements.txt
-set PY_CMD=
+set PY=py -3.10
 
 echo VisitIQ install started > "%LOG_FILE%"
 
 REM -------------------------------------------------
-REM Step 1: Detect Python 3.10 via launcher
+REM Step 1: Ensure Python 3.10 exists
 REM -------------------------------------------------
 echo.
-echo [1/5] Checking for Python 3.10...
+echo [1/6] Checking for Python 3.10...
 
-py -3.10 --version >nul 2>&1
-if %ERRORLEVEL%==0 (
-    set PY_CMD=py -3.10
-    echo Python 3.10 detected.
-    goto PY_OK
-)
-
-echo Python 3.10 not found.
-
-REM -------------------------------------------------
-REM Step 2: Install Python 3.10 via winget
-REM -------------------------------------------------
-echo.
-echo [2/5] Installing Python 3.10...
-
-where winget >nul 2>&1
+%PY% --version >nul 2>&1
 if %ERRORLEVEL% NEQ 0 (
-    echo ERROR: winget not available. >> "%LOG_FILE%"
-    echo Please install Python 3.10 manually.
-    pause
-    exit /b 1
+    echo Python 3.10 not found.
+    echo Installing Python 3.10...
+
+    winget install --id Python.Python.3.10 -e ^
+      --accept-package-agreements --accept-source-agreements ^
+      >> "%LOG_FILE%" 2>&1
+
+    timeout /t 8 >nul
+
+    %PY% --version >nul 2>&1
+    if %ERRORLEVEL% NEQ 0 (
+        echo ❌ Python installation failed.
+        echo See log: %LOG_FILE%
+        exit /b 1
+    )
 )
 
-winget install --id Python.Python.3.10 -e ^
-  --accept-package-agreements --accept-source-agreements ^
-  >> "%LOG_FILE%" 2>&1
-
-echo Waiting for Python to register...
-timeout /t 8 >nul
-
-REM Re-check via launcher (NOT PATH)
-py -3.10 --version >nul 2>&1
-if %ERRORLEVEL% NEQ 0 (
-    echo.
-    echo ❌ Python installation failed.
-    echo See log: %LOG_FILE%
-    exit /b 1
-)
-
-set PY_CMD=py -3.10
-
-:PY_OK
+echo Python 3.10 ready.
 
 REM -------------------------------------------------
-REM Step 3: Upgrade pip (quiet)
+REM Step 2: Upgrade pip
 REM -------------------------------------------------
 echo.
-echo [3/5] Upgrading pip...
+echo [2/6] Upgrading pip...
 
-%PY_CMD% -m pip install --upgrade pip ^
+%PY% -m pip install --upgrade pip ^
   --disable-pip-version-check --no-python-version-warning ^
   >> "%LOG_FILE%" 2>&1
 
 REM -------------------------------------------------
-REM Step 4: Download requirements
+REM Step 3: Install insightface (WHEEL ONLY)
 REM -------------------------------------------------
 echo.
-echo [4/5] Downloading requirements...
+echo [3/6] Installing core vision engine...
 
-curl -fsSL "%REQ_URL%" -o "%TMP_REQ%" >> "%LOG_FILE%" 2>&1
+%PY% -m pip install insightface==0.7.3 ^
+  --only-binary=:all: ^
+  --disable-pip-version-check ^
+  >> "%LOG_FILE%" 2>&1
+
 if %ERRORLEVEL% NEQ 0 (
-    echo ERROR: Failed to download requirements.
+    echo ❌ Failed to install core vision engine.
     echo See log: %LOG_FILE%
     exit /b 1
 )
 
 REM -------------------------------------------------
-REM Step 5: Install dependencies (binary-only, silent)
+REM Step 4: Download remaining requirements
 REM -------------------------------------------------
 echo.
-echo [5/5] Installing dependencies (this may take a few minutes)...
+echo [4/6] Downloading dependencies list...
 
-%PY_CMD% -m pip install --user ^
+curl -fsSL "%REQ_URL%" -o "%TMP_REQ%" >> "%LOG_FILE%" 2>&1
+if %ERRORLEVEL% NEQ 0 (
+    echo ❌ Failed to download requirements.
+    echo See log: %LOG_FILE%
+    exit /b 1
+)
+
+REM -------------------------------------------------
+REM Step 5: Install remaining dependencies (silent)
+REM -------------------------------------------------
+echo.
+echo [5/6] Installing remaining dependencies...
+echo This may take a few minutes.
+
+%PY% -m pip install --user ^
   --only-binary=:all: ^
   --disable-pip-version-check ^
   --no-python-version-warning ^
@@ -98,13 +94,14 @@ echo [5/5] Installing dependencies (this may take a few minutes)...
   >> "%LOG_FILE%" 2>&1
 
 if %ERRORLEVEL% NEQ 0 (
-    echo.
     echo ❌ Dependency installation failed.
-    echo See detailed log:
-    echo %LOG_FILE%
+    echo See log: %LOG_FILE%
     exit /b 1
 )
 
+REM -------------------------------------------------
+REM Step 6: Done
+REM -------------------------------------------------
 echo.
 echo ============================================
 echo   VisitIQ installation completed successfully
