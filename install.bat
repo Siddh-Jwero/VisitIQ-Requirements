@@ -8,21 +8,21 @@ echo ============================================
 set LOG_FILE=%TEMP%\visitiq_install.log
 set REQ_URL=https://raw.githubusercontent.com/Siddh-Jwero/VisitIQ-Requirements/main/requirements.txt
 set TMP_REQ=%TEMP%\visitiq_requirements.txt
-set PY=py -3.10
+set PY=py -3.12
 
 echo VisitIQ install started > "%LOG_FILE%"
 
 REM -------------------------------------------------
-REM Step 1: Ensure Python 3.10
+REM Step 1: Ensure Python 3.12
 REM -------------------------------------------------
 echo.
-echo [1/5] Checking for Python 3.10...
+echo [1/5] Checking for Python 3.12...
 
 %PY% --version >nul 2>&1
 if %ERRORLEVEL% NEQ 0 (
-    echo Installing Python 3.10...
+    echo Installing Python 3.12...
 
-    winget install --id Python.Python.3.10 -e ^
+    winget install --id Python.Python.3.12 -e ^
       --accept-package-agreements --accept-source-agreements ^
       >> "%LOG_FILE%" 2>&1
 
