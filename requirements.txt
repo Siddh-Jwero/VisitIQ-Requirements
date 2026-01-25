@@ -4,7 +4,9 @@ requests
 cryptography
 keyring
 setuptools
-
+python-nmap
+pyinstaller
+pyzipper
 # GUI
 PyQt6
 
