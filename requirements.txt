@@ -8,6 +8,7 @@ python-nmap
 pyinstaller
 pyzipper
 pyqtgraph
+
 # GUI
 PyQt6
 
@@ -30,9 +31,3 @@ torchvision
 transformers
 huggingface_hub
 insightface
-# Apple Silicon / macOS Specific
-coremltools>=7.0.0; sys_platform == 'darwin'
-
-# External Sources
-# CLIP for body/context embeddings - pinned to known working commit
-#git+https://github.com/openai/CLIP.git@d50d76daa670286dd6cacf3bcd80b5e4823fc8e1
