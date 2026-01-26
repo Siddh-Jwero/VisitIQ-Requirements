@@ -7,11 +7,12 @@ setuptools
 python-nmap
 pyinstaller
 pyzipper
+pyqtgraph
 # GUI
 PyQt6
 
 # Data Processing
-numpy
+numpy==2.4.1
 scipy
 pydantic
 tqdm
