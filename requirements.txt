@@ -7,7 +7,12 @@ setuptools
 python-nmap
 pyinstaller
 pyzipper
+# Charts - pyqtgraph requires OpenGL on Windows
 pyqtgraph
+PyOpenGL
+PyOpenGL-accelerate
+fastapi
+uvicorn
 
 # GUI
 PyQt6
