@@ -69,7 +69,6 @@ echo [4/5] Installing dependencies...
 echo This may take a few minutes.
 
 %PY% -m pip install --user ^
-  --only-binary=:all: ^
   --disable-pip-version-check ^
   --no-python-version-warning ^
   -r "%TMP_REQ%" ^
